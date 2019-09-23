@@ -8,4 +8,5 @@ export default async ({ Vue }) => {
   // something to do
   Vue.component('GMap', Gmap);
   Vue.component('RightMenu', RightMenu);
+  Vue.use(require('vue-moment'));
 }

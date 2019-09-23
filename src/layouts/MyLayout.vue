@@ -9,7 +9,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawer" bordered content-class="bg-grey-2">
+    <q-drawer :width="200" v-model="leftDrawer" bordered content-class="bg-grey-2">
       <q-list>
         <q-item clickable v-ripple>
           <q-item-section avatar>
