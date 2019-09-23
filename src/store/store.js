@@ -1,9 +1,11 @@
 /* eslint-disable */
 export const store = {
-    state: {
-        users: {}
-    },
+    users: {}
+    ,
     addUser(user) {
-        this.state.users.push(user);
+        this.users = user;
+    },
+    sync() {
+        this.users = this.users;
     }
 };
