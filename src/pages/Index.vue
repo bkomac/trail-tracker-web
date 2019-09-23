@@ -1,7 +1,7 @@
 <template>
-<div>
+<q-page>
     <g-map :name="mapName"></g-map>
-</div>
+</q-page>
 </template>
 
 <script>

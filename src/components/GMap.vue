@@ -18,7 +18,7 @@ export default {
 <style scoped>
 .google-map {
     width: 100%;
-    min-height: 900px;
+    height: calc(100vh - 50px);
     margin: 0 auto;
     background: gray;
     position: none;
