@@ -39,12 +39,8 @@
 <script>
 /* eslint-disable */
 import { store } from "../store/store.js";
-import RightMenu from "../pages/RightMenu";
 export default {
   name: "MyLayout",
-  components: {
-    RightMenu
-  },
   data() {
     return {
       users: store.users,
