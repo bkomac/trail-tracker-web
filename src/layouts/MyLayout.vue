@@ -11,14 +11,14 @@
 
     <q-drawer :width="200" v-model="leftDrawer" bordered content-class="bg-grey-2">
       <q-list>
-        <q-item clickable v-ripple>
+        <q-item clickable to="/">
           <q-item-section avatar>
             <q-icon name="map" />
           </q-item-section>
           <q-item-section>Map view</q-item-section>
         </q-item>
         <q-separator />
-        <q-item clickable v-ripple>
+        <q-item clickable to="/settings">
           <q-item-section avatar>
             <q-icon name="settings" />
           </q-item-section>

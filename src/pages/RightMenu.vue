@@ -12,8 +12,13 @@
     <q-scroll-area class="fit">
       <q-list bordered class="rounded-borders" style="max-width: 500px" separator>
         <q-item-label header>Online trackers</q-item-label>
-        <q-separator/>
-        <q-item v-bind:key="user.uuid" v-for="user in users" clickable>
+        <q-separator />
+        <q-item
+          v-bind:key="user.uuid"
+          v-for="user in store.users"
+          @click="centerMap(user)"
+          clickable
+        >
           <q-item-section avatar>
             <q-avatar>
               <img :src="'https://ui-avatars.com/api/?background=027BE3&color=fff&name='+user.name" />
@@ -23,13 +28,41 @@
           <q-item-section>
             <q-item-label lines="1">{{user.name}}</q-item-label>
             <q-item-label caption lines="2">
-              <span class="text-weight-bold">Altitude: {{user.position.altitude}}</span>
+              <span class="text-weight-bold">Altitude: {{user.position.altitude | toFixed1}}m</span>
             </q-item-label>
-            <q-item-label caption lines="3">
-              <span class="text-weight-bold">Speed: {{user.position.speed}}</span>
+            <q-item-label caption lines="2">
+              <span class="text-weight-bold">Accuracy: {{user.position.accuracy | toFixed}}m</span>
+            </q-item-label>
+            <q-item-label caption lines="2">
+              <span class="text-weight-bold">Speed: {{user.position.speed | toFixed1}}</span>
+            </q-item-label>
+            <q-item-label caption lines="2">
+              <span class="text-weight-bold">Battery: {{user.position.battery.level}}%</span>
+              <transition name="fade">
+                <q-linear-progress
+                  rounded
+                  style="height: 15px"
+                  :value="user.position.battery.level / 100"
+                  color="red"
+                  class="q-mt-sm"
+                />
+              </transition>
             </q-item-label>
           </q-item-section>
-          <q-item-section side top>{{user.position.time | moment("from")}}</q-item-section>
+          <q-item-section side top>
+            <transition name="fade">
+              <q-item-label caption>{{user.position.time | moment("from")}}</q-item-label>
+            </transition>
+            <q-badge :label="user.position.activity.type" style="margin: 2px" />
+            <transition name="fade">
+              <q-badge
+                v-show="store.userToFollow == user.uuid"
+                color="red"
+                label="FOLLOWING"
+                style="margin: 2px"
+              />
+            </transition>
+          </q-item-section>
         </q-item>
       </q-list>
     </q-scroll-area>
@@ -47,9 +80,21 @@ export default {
   },
   data() {
     return {
-      users: store.users,
+      store: store,
       localRightDrawerOpen: true
     };
+  },
+  methods: {
+    centerMap(user) {
+      console.log("key:", user);
+
+      user.lastMarker.map.panTo({
+        lat: user.position.lat,
+        lng: user.position.lon
+      });
+
+      store.userToFollow = user.uuid;
+    }
   },
   watch: {
     /* If our prop ever gets changed outside of this component then we need to update our local data version of the prop */
@@ -61,9 +106,34 @@ export default {
     /* As soon as the component is mounted convert our passed prop into data*/
     /* This line may or may not be necessary - The watch function probably covers it already, but I haven't tested without it yet */
     this.localRightDrawerOpen = this.rightDrawerOpen;
+  },
+  filters: {
+    toFixed(value) {
+      if (value != null) return value.toFixed(0);
+      else return value;
+    },
+    toFixed1(value) {
+      if (value != null) return value.toFixed(1);
+      else return value;
+    },
+    toFixed2(value) {
+      if (value != null) return value.toFixed(2);
+      else return value;
+    },
+    toKmH(value) {
+      if (value != null) return value + 3.6;
+      else return value;
+    }
   }
 };
 </script>
 
 <style>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
 </style>
