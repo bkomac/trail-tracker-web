@@ -4,6 +4,18 @@
       <q-toolbar>
         <q-btn flat dense round @click="leftDrawer = !leftDrawer" icon="menu" aria-label="Menu" />
         <q-toolbar-title>Trail tracker</q-toolbar-title>
+
+        <q-input
+          dark
+          dense
+          standout
+          v-model="channel"
+          input-class="text-left"
+          label="Input channel"
+        ></q-input>
+
+        <q-btn v-if="channel != ''" round color="primary" icon="send" @click="connectChannel" />
+
         <div>TrailTracker v{{ $q.version }}</div>
         <q-btn flat @click="rightDrawerOpen = !rightDrawerOpen" round dense icon="menu" />
       </q-toolbar>
@@ -43,10 +55,16 @@ export default {
   name: "MyLayout",
   data() {
     return {
-      users: store.users,
+      channel: store.channel,
+      store: store,
       leftDrawer: false,
       rightDrawerOpen: true
     };
+  },
+  methods: {
+    connectChannel() {
+      this.$set(this.store, "channel", this.channel);
+    }
   }
 };
 </script>

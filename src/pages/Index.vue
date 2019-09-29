@@ -16,11 +16,20 @@ export default {
       mapName: "tracking-map",
       map: null,
       socket: this.$socket,
-
+      channel: store.channel,
       store: store,
       lastMarkers: {},
       accurracyMarkers: {}
     };
+  },
+  watch: {
+    channel: function(value) {
+      if (value != undefined || value != "") {
+        channel = value + "/";
+        this.socket.on(channel + "locations", this.onLocation);
+        console.log("connecting to channel " + channel);
+      }
+    }
   },
   mounted() {
     console.log("mounted...");
@@ -30,8 +39,14 @@ export default {
       center: new google.maps.LatLng(46.0676, 14.4116)
     };
     this.map = new google.maps.Map(element, options);
-
     this.socket.on("locations", this.onLocation);
+
+    if (this.channel != undefined || this.channel != "") {
+      var channel = channel + "/";
+      this.socket.on(channel + "locations", this.onLocation);
+    } else {
+      this.socket.on("locations", this.onLocation);
+    }
 
     // var marker = new google.maps.Marker({
     //     position: {
@@ -69,7 +84,7 @@ export default {
           this.$set(this.store.users, loc.user.uuid, user);
         } else {
           console.log("adding position to user: ", loc.user.name);
-          this.$set(this.store.users[loc.user.uuid], 'position', loc);
+          this.$set(this.store.users[loc.user.uuid], "position", loc);
         }
         try {
           this.lastMarkers[loc.user.uuid].setMap(null);
@@ -87,10 +102,10 @@ export default {
         );
         if (this.store.users[loc.user.uuid].locations == undefined)
           this.store.users[loc.user.uuid].locations = [];
-        this.store.users[loc.user.uuid].locations.push({
-          lat: loc.lat,
-          lng: loc.lon
-        });
+        this.store.users[loc.user.uuid].locations.push(loc);
+        this.store.users[loc.user.uuid].locations = this.store.users[
+          loc.user.uuid
+        ].locations.slice(-10);
 
         if (this.store.userToFollow == loc.user.uuid) {
           this.map.panTo({
@@ -100,6 +115,7 @@ export default {
         }
       } //---
     },
+
     addLastMarker(location, map) {
       var title = this.$moment(location.time).fromNow();
 
@@ -110,11 +126,13 @@ export default {
         },
         map: map,
         draggable: true,
-        color: "#00ff00",
+        color: '#ff0000',
         title: title,
         label: location.user.name.substring(0, 1) || "",
         animation: google.maps.Animation.DROP
       });
+
+      
 
       var infowindow = new google.maps.InfoWindow({
         content:
@@ -235,5 +253,13 @@ body {
 
 #content {
   width: 250px;
+}
+
+.map-icon-label .map-icon {
+  font-size: 24px;
+  color: #ffffff;
+  line-height: 48px;
+  text-align: center;
+  white-space: nowrap;
 }
 </style

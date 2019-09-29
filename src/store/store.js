@@ -1,6 +1,7 @@
 /* eslint-disable */
 export const store = {
     users: {},
-    userToFollow: {}
+    userToFollow: {},
+    channel: ""
     
 };
