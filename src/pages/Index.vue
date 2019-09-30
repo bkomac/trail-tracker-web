@@ -19,7 +19,8 @@ export default {
       channel: store.channel,
       store: store,
       lastMarkers: {},
-      accurracyMarkers: {}
+      accurracyMarkers: {},
+      timers: {}
     };
   },
   watch: {
@@ -39,13 +40,13 @@ export default {
       center: new google.maps.LatLng(46.0676, 14.4116)
     };
     this.map = new google.maps.Map(element, options);
-    this.socket.on("locations", this.onLocation);
+    this.socket.on("location", this.onLocation);
 
     if (this.channel != undefined || this.channel != "") {
       var channel = channel + "/";
-      this.socket.on(channel + "locations", this.onLocation);
+      this.socket.on(channel + "location", this.onLocation);
     } else {
-      this.socket.on("locations", this.onLocation);
+      this.socket.on("location", this.onLocation);
     }
 
     // var marker = new google.maps.Marker({
@@ -60,79 +61,98 @@ export default {
   },
   created() {},
   methods: {
-    onLocation(locations) {
-      console.log(
-        "onLocation... for user " + locations[0].user.name,
-        locations
+    onLocation(loc) {
+      console.log("onLocation... for user " + loc.user.name, loc);
+
+      if (
+        this.store.users[loc.user.uuid] == undefined ||
+        this.store.users[loc.user.uuid] == null
+      ) {
+        console.log("adding user: ", loc.user.name);
+        var user = {
+          name: loc.user.name,
+          uuid: loc.user.uuid,
+          position: loc.data
+        };
+
+        this.$set(this.store.users, loc.user.uuid, user);
+      } else {
+        console.log("adding position to user: ", loc.user.name);
+        this.$set(this.store.users[loc.user.uuid], "position", loc.data);
+      }
+      try {
+        this.lastMarkers[loc.user.uuid].setMap(null);
+        this.accurracyMarkers[loc.user.uuid].setMap(null);
+      } catch (e) {
+        console.log("err:" + e.message);
+      }
+      this.lastMarkers[loc.user.uuid] = this.addLastMarker(loc, this.map);
+      this.store.users[loc.user.uuid].lastMarker = this.lastMarkers[
+        loc.user.uuid
+      ];
+      this.accurracyMarkers[loc.user.uuid] = this.addAccuracyMarker(
+        loc,
+        this.map
       );
-      locations = locations || [];
-      for (var element in locations) {
-        var loc = locations[element];
-        console.log("loc ", loc);
+      if (this.store.users[loc.user.uuid].locations == undefined)
+        this.store.users[loc.user.uuid].locations = [];
+      this.store.users[loc.user.uuid].locations.push(loc);
+      this.store.users[loc.user.uuid].locations = this.store.users[
+        loc.user.uuid
+      ].locations.slice(-10);
 
-        if (
-          this.store.users[loc.user.uuid] == undefined ||
-          this.store.users[loc.user.uuid] == null
-        ) {
-          console.log("adding user: ", loc.user.name);
-          var user = {
-            name: loc.user.name,
-            uuid: loc.user.uuid,
-            position: loc
-          };
+      if (this.store.userToFollow == loc.user.uuid) {
+        this.map.panTo({
+          lat: loc.data.lat,
+          lng: loc.data.lon
+        });
+      }
 
-          this.$set(this.store.users, loc.user.uuid, user);
-        } else {
-          console.log("adding position to user: ", loc.user.name);
-          this.$set(this.store.users[loc.user.uuid], "position", loc);
-        }
-        try {
-          this.lastMarkers[loc.user.uuid].setMap(null);
-          this.accurracyMarkers[loc.user.uuid].setMap(null);
-        } catch (e) {
-          console.log("err:" + e.message);
-        }
-        this.lastMarkers[loc.user.uuid] = this.addLastMarker(loc, this.map);
-        this.store.users[loc.user.uuid].lastMarker = this.lastMarkers[
-          loc.user.uuid
-        ];
-        this.accurracyMarkers[loc.user.uuid] = this.addAccuracyMarker(
-          loc,
-          this.map
+      if (this.timers[loc.user.uuid] != undefined)
+        clearTimeout(this.timers[loc.user.uuid]);
+
+      this.store.users[loc.user.uuid].moment = this.$moment(
+        loc.data.time
+      ).fromNow();
+
+      this.timers[loc.user.uuid] = this.setMomentTimer(this, loc.user.uuid);
+    },
+
+    setMomentTimer(self, uuid) {
+      return setInterval(function() {
+        self.store.users[uuid].moment = self
+          .$moment(self.store.users[uuid].position.time)
+          .fromNow();
+
+        self.$set(
+          self.store.users[uuid],
+          "moment",
+          self.$moment(self.store.users[uuid].position.time).fromNow()
         );
-        if (this.store.users[loc.user.uuid].locations == undefined)
-          this.store.users[loc.user.uuid].locations = [];
-        this.store.users[loc.user.uuid].locations.push(loc);
-        this.store.users[loc.user.uuid].locations = this.store.users[
-          loc.user.uuid
-        ].locations.slice(-10);
-
-        if (this.store.userToFollow == loc.user.uuid) {
-          this.map.panTo({
-            lat: loc.lat,
-            lng: loc.lon
-          });
-        }
-      } //---
+        console.log(
+          "moment of " +
+            uuid +
+            ": " +
+            self.store.users[uuid].moment
+        );
+      }, 10000);
     },
 
     addLastMarker(location, map) {
-      var title = this.$moment(location.time).fromNow();
+      var title = this.$moment(location.data.time).fromNow();
 
       var marker = new google.maps.Marker({
         position: {
-          lat: location.lat,
-          lng: location.lon
+          lat: location.data.lat,
+          lng: location.data.lon
         },
         map: map,
         draggable: true,
-        color: '#ff0000',
+        color: "#ff0000",
         title: title,
         label: location.user.name.substring(0, 1) || "",
         animation: google.maps.Animation.DROP
       });
-
-      
 
       var infowindow = new google.maps.InfoWindow({
         content:
@@ -145,21 +165,21 @@ export default {
           "</h5>" +
           '<div id="bodyContent">' +
           "<p><b>Activity type:</b> " +
-          location.activity.type +
+          location.data.act.type +
           " (" +
-          location.activity.confidence +
+          location.data.act.confidence +
           "%)</p>" +
           "<p><b>Speed:</b> " +
-          location.speed +
+          location.data.spd +
           " km/h</p>" +
           "<p><b>Altitude:</b> " +
-          location.altitude +
+          location.data.alt +
           " m</p>" +
           "<p><b>Battery level:</b> " +
-          location.battery.level +
+          location.data.batt.level +
           "%</p>" +
           "<p><b>Last seen:</b> " +
-          this.$moment(location.time).fromNow() +
+          this.$moment(location.data.time).fromNow() +
           "</p>" +
           "</div>" +
           "</div>"
@@ -167,7 +187,7 @@ export default {
 
       var self = this;
       var int = setInterval(function() {
-        title = self.$moment(location.time).fromNow();
+        title = self.$moment(location.data.time).fromNow();
         //console.log(title);
         marker.set("title", title);
 
@@ -182,21 +202,21 @@ export default {
             "</h5>" +
             '<div id="bodyContent">' +
             "<p><b>Activity type:</b> " +
-            location.activity.type +
+            location.data.act.type +
             " (" +
-            location.activity.confidence +
+            location.data.act.confidence +
             "%)</p>" +
             "<p><b>Speed:</b> " +
-            location.speed +
+            location.data.spd +
             " km/h</p>" +
             "<p><b>Altitude:</b> " +
-            location.altitude +
+            location.data.alt +
             " m</p>" +
             "<p><b>Battery level:</b> " +
-            location.battery.level +
+            location.data.batt.level +
             "%</p>" +
             "<p><b>Last seen:</b> " +
-            self.$moment(location.time).fromNow() +
+            self.$moment(location.data.time).fromNow() +
             "</p>" +
             "</div>" +
             "</div>"
@@ -216,8 +236,8 @@ export default {
 
     addAccuracyMarker(location, map) {
       var marker = new google.maps.Circle({
-        center: { lat: location.lat, lng: location.lon },
-        radius: location.accuracy,
+        center: { lat: location.data.lat, lng: location.data.lon },
+        radius: location.data.acc,
         map: map,
         fillColor: "#00f",
         fillOpacity: 0.03,

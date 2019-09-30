@@ -5,7 +5,7 @@
     overlay
     show-if-above
     bordered
-    :width="450"
+    :width="400"
     :breakpoint="500"
     content-class="bg-grey-3"
   >
@@ -28,32 +28,34 @@
           <q-item-section>
             <q-item-label lines="1">{{user.name}}</q-item-label>
             <q-item-label caption lines="2">
-              <span class="text-weight-bold">Altitude: {{user.position.altitude | toFixed1}}m</span>
+              <span class="text-weight-bold">Altitude: {{user.position.alt | toFixed1}}m</span>
             </q-item-label>
             <q-item-label caption lines="2">
-              <span class="text-weight-bold">Accuracy: {{user.position.accuracy | toFixed}}m</span>
+              <span class="text-weight-bold">Accuracy: {{user.position.acc | toFixed}}m</span>
             </q-item-label>
             <q-item-label caption lines="2">
-              <span class="text-weight-bold">Speed: {{user.position.speed | toFixed1}}</span>
+              <span class="text-weight-bold">Speed: {{user.position.spd | toKmH | toFixed1 }} km/h</span>
             </q-item-label>
             <q-item-label caption lines="2">
-              <span class="text-weight-bold">Battery: {{user.position.battery.level}}%</span>
+              <span class="text-weight-bold">Battery: {{user.position.batt.level}}%</span>
               <transition name="fade">
-                <q-linear-progress
-                  rounded
-                  style="height: 15px"
-                  :value="user.position.battery.level / 100"
-                  color="red"
-                  class="q-mt-sm"
-                />
+                <div style="width: 200px">
+                  <q-linear-progress
+                    rounded
+                    style="height: 15px"
+                    :value="user.position.batt.level / 100"
+                    color="red"
+                    class="q-mt-sm"
+                  />
+                </div>
               </transition>
             </q-item-label>
           </q-item-section>
           <q-item-section side top>
             <transition name="fade">
-              <q-item-label caption>{{user.position.time | moment("from")}}</q-item-label>
+              <q-item-label caption>{{user.moment}}</q-item-label>
             </transition>
-            <q-badge :label="user.position.activity.type" style="margin: 2px" />
+            <q-badge :label="user.position.act.type" style="margin: 2px" />
             <transition name="fade">
               <q-badge
                 v-show="store.userToFollow == user.uuid"
