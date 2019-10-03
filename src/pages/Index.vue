@@ -62,7 +62,7 @@ export default {
   created() {},
   methods: {
     onLocation(loc) {
-      console.log("onLocation... for user " + loc.user.name, loc);
+      console.log(new Date() + " onLocation... for user " + loc.user.name, loc);
 
       if (
         this.store.users[loc.user.uuid] == undefined ||
@@ -72,13 +72,15 @@ export default {
         var user = {
           name: loc.user.name,
           uuid: loc.user.uuid,
-          position: loc.data
+          position: loc.data,
+          pointNum: loc.pointNum
         };
 
         this.$set(this.store.users, loc.user.uuid, user);
       } else {
         console.log("adding position to user: ", loc.user.name);
         this.$set(this.store.users[loc.user.uuid], "position", loc.data);
+        this.$set(this.store.users[loc.user.uuid], "pointNum", loc.pointNum);
       }
       try {
         this.lastMarkers[loc.user.uuid].setMap(null);
@@ -129,12 +131,12 @@ export default {
           "moment",
           self.$moment(self.store.users[uuid].position.time).fromNow()
         );
-        console.log(
-          "moment of " +
-            uuid +
-            ": " +
-            self.store.users[uuid].moment
-        );
+        // console.log(
+        //   "moment of " +
+        //     uuid +
+        //     ": " +
+        //     self.store.users[uuid].moment
+        // );
       }, 10000);
     },
 

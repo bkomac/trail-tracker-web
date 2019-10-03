@@ -5,7 +5,7 @@
     overlay
     show-if-above
     bordered
-    :width="400"
+    :width="370"
     :breakpoint="500"
     content-class="bg-grey-3"
   >
@@ -53,9 +53,14 @@
           </q-item-section>
           <q-item-section side top>
             <transition name="fade">
-              <q-item-label caption>{{user.moment}}</q-item-label>
+              <q-item-label caption :title="new Date(user.position.time)">{{user.moment}}</q-item-label>
             </transition>
-            <q-badge :label="user.position.act.type" style="margin: 2px" />
+            <q-badge
+              :title="user.position.act.confidence + '%'"
+              :label="user.position.act.type"
+              style="margin: 2px"
+            />
+            <q-badge :label="user.pointNum" style="margin: 2px" />
             <transition name="fade">
               <q-badge
                 v-show="store.userToFollow == user.uuid"
