@@ -42,6 +42,8 @@ export default {
     this.map = new google.maps.Map(element, options);
     this.socket.on("location", this.onLocation);
 
+    this.socket.on("action", this.onAction);
+
     if (this.channel != undefined || this.channel != "") {
       var channel = channel + "/";
       this.socket.on(channel + "location", this.onLocation);
@@ -61,6 +63,29 @@ export default {
   },
   created() {},
   methods: {
+    onAction(loc) {
+      console.log(new Date() + " onAction... for user " + loc.user.name, loc);
+
+      if (
+        this.store.users[loc.user.uuid] == undefined ||
+        this.store.users[loc.user.uuid] == null
+      ) {
+        console.log("adding user: ", loc.user.name);
+        var user = {
+          action: loc.action,
+          name: loc.user.name,
+          uuid: loc.user.uuid,
+          position: loc.data,
+          pointNum: loc.pointNum
+        };
+
+        this.$set(this.store.users, loc.user.uuid, user);
+      } else {
+        console.log("user action: ", loc.user.name + " " + loc.action);
+        this.$set(this.store.users[loc.user.uuid], "action", loc.action);
+        this.$set(this.store.users[loc.user.uuid], "channel", loc.user.channel);
+      }
+    },
     onLocation(loc) {
       console.log(new Date() + " onLocation... for user " + loc.user.name, loc);
 

@@ -10,7 +10,7 @@
     content-class="bg-grey-3"
   >
     <q-scroll-area class="fit">
-      <q-list bordered class="rounded-borders" style="max-width: 500px" separator>
+      <q-list class="rounded-borders" style="max-width: 500px" separator>
         <q-item-label header>Online trackers</q-item-label>
         <q-separator />
         <q-item
@@ -39,10 +39,10 @@
             <q-item-label caption lines="2">
               <span class="text-weight-bold">Battery: {{user.position.batt.level}}%</span>
               <transition name="fade">
-                <div style="width: 200px">
+                <div style="width: 150px">
                   <q-linear-progress
                     rounded
-                    style="height: 15px"
+                    style="height: 20px"
                     :value="user.position.batt.level / 100"
                     color="red"
                     class="q-mt-sm"
@@ -56,15 +56,17 @@
               <q-item-label caption :title="new Date(user.position.time)">{{user.moment}}</q-item-label>
             </transition>
             <q-badge
+              v-if="user.action != 'stop'"
               :title="user.position.act.confidence + '%'"
-              :label="user.position.act.type"
+              :label="user.position.act.type | stripUnderscore"
               style="margin: 2px"
             />
+            <q-badge v-else color="red" label="LOGGING STOPED" style="margin: 2px" />
             <q-badge :label="user.pointNum" style="margin: 2px" />
             <transition name="fade">
               <q-badge
                 v-show="store.userToFollow == user.uuid"
-                color="red"
+                color="green"
                 label="FOLLOWING"
                 style="margin: 2px"
               />
@@ -101,6 +103,7 @@ export default {
       });
 
       store.userToFollow = user.uuid;
+      this.$forceUpdate();
     }
   },
   watch: {
@@ -129,6 +132,10 @@ export default {
     },
     toKmH(value) {
       if (value != null) return value + 3.6;
+      else return value;
+    },
+    stripUnderscore(value) {
+      if (value != null) return value.replace("_", " ");
       else return value;
     }
   }
