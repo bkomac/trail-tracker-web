@@ -75,8 +75,18 @@ export default {
           action: loc.action,
           name: loc.user.name,
           uuid: loc.user.uuid,
-          position: loc.data,
-          pointNum: loc.pointNum
+          position:
+            loc.data ||
+            {
+              act: { confidence: 0, type: "STILL" },
+              batt: { isTrusted: false, level: 0, isPlugged: false },
+              lat: 0,
+              lon: 0,
+              alt: 0,
+              acc: 0,
+              time: 0
+            },
+          pointNum: loc.pointNum | 0
         };
 
         this.$set(this.store.users, loc.user.uuid, user);
@@ -166,7 +176,9 @@ export default {
     },
 
     addLastMarker(location, map) {
-      var title = this.$moment(location.data.time).fromNow();
+      var title = "";
+      if (location.data != undefined)
+        title = this.$moment(location.data.time).fromNow();
 
       var marker = new google.maps.Marker({
         position: {

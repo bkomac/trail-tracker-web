@@ -37,6 +37,9 @@
               <span class="text-weight-bold">Speed: {{user.position.spd | toKmH | toFixed1 }} km/h</span>
             </q-item-label>
             <q-item-label caption lines="2">
+              <span class="text-weight-bold">HR: {{user.position.hr}} bpm</span>
+            </q-item-label>
+            <q-item-label caption lines="2">
               <span class="text-weight-bold">Battery: {{user.position.batt.level}}%</span>
               <transition name="fade">
                 <div style="width: 150px">
