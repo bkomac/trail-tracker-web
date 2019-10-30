@@ -20,7 +20,9 @@ export default {
       store: store,
       lastMarkers: {},
       accurracyMarkers: {},
-      timers: {}
+      timers: {},
+      polys: {},
+      utils: this.$utils
     };
   },
   watch: {
@@ -64,7 +66,15 @@ export default {
   created() {},
   methods: {
     onAction(loc) {
-      console.log(new Date() + " onAction... for user " + loc.user.name, loc);
+      console.log(
+        new Date() + " onAction... for user " + loc.user.name,
+        loc + " " + this.utils.userColor(loc.user.name)
+      );
+      this.$set(
+        this.store.users[loc.user.uuid],
+        "color",
+        this.utils.userColor(loc.user.name)
+      );
 
       if (
         this.store.users[loc.user.uuid] == undefined ||
@@ -75,17 +85,15 @@ export default {
           action: loc.action,
           name: loc.user.name,
           uuid: loc.user.uuid,
-          position:
-            loc.data ||
-            {
-              act: { confidence: 0, type: "STILL" },
-              batt: { isTrusted: false, level: 0, isPlugged: false },
-              lat: 0,
-              lon: 0,
-              alt: 0,
-              acc: 0,
-              time: 0
-            },
+          position: loc.data || {
+            act: { confidence: 0, type: "STILL" },
+            batt: { isTrusted: false, level: 0, isPlugged: false },
+            lat: 0,
+            lon: 0,
+            alt: 0,
+            acc: 0,
+            time: 0
+          },
           pointNum: loc.pointNum | 0
         };
 
@@ -95,7 +103,9 @@ export default {
         this.$set(this.store.users[loc.user.uuid], "action", loc.action);
         this.$set(this.store.users[loc.user.uuid], "channel", loc.user.channel);
       }
+      this.$root.$emit("update", loc.user.uuid);
     },
+
     onLocation(loc) {
       console.log(new Date() + " onLocation... for user " + loc.user.name, loc);
 
@@ -117,9 +127,18 @@ export default {
         this.$set(this.store.users[loc.user.uuid], "position", loc.data);
         this.$set(this.store.users[loc.user.uuid], "pointNum", loc.pointNum);
       }
+
+      this.$set(
+        this.store.users[loc.user.uuid],
+        "color",
+        this.utils.userColor(loc.user.name)
+      );
+      loc.color = this.store.users[loc.user.uuid].color;
+
       try {
         this.lastMarkers[loc.user.uuid].setMap(null);
         this.accurracyMarkers[loc.user.uuid].setMap(null);
+        this.polys[loc.user.uuid].setMap(null);
       } catch (e) {
         console.log("err:" + e.message);
       }
@@ -138,6 +157,41 @@ export default {
         loc.user.uuid
       ].locations.slice(-10);
 
+      //poly
+      if (this.store.users[loc.user.uuid].polyPoints == undefined)
+        this.store.users[loc.user.uuid].polyPoints = [];
+
+      if (
+        this.store.users[loc.user.uuid].polyPoints.length > 0 &&
+        this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat ==
+          loc.data.lat
+      ) {
+        console.log("Same point..."+this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat+ " = "+ loc.data.lat);
+      } else {
+        this.store.users[loc.user.uuid].polyPoints.push({
+          lat: loc.data.lat,
+          lng: loc.data.lon
+        });
+        console.log("add point..."+this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat+ " = "+ loc.data.lat);
+      }
+
+      this.store.users[loc.user.uuid].polyPoints = this.store.users[
+        loc.user.uuid
+      ].polyPoints.slice(-10);
+
+      //if (this.polys[loc.user.uuid] == undefined) {
+      this.polys[loc.user.uuid] = new google.maps.Polyline({
+        path: this.store.users[loc.user.uuid].polyPoints,
+        geodesic: true,
+        strokeColor: "#" + loc.color,
+        strokeOpacity: 0.2,
+        strokeWeight: 5
+      });
+
+      //}
+
+      this.polys[loc.user.uuid].setMap(this.map);
+
       if (this.store.userToFollow == loc.user.uuid) {
         this.map.panTo({
           lat: loc.data.lat,
@@ -151,6 +205,7 @@ export default {
       this.store.users[loc.user.uuid].moment = this.$moment(
         loc.data.time
       ).fromNow();
+      this.$root.$emit("update", loc.user.uuid);
 
       this.timers[loc.user.uuid] = this.setMomentTimer(this, loc.user.uuid);
     },
@@ -166,6 +221,8 @@ export default {
           "moment",
           self.$moment(self.store.users[uuid].position.time).fromNow()
         );
+
+        self.$root.$emit("update", uuid);
         // console.log(
         //   "moment of " +
         //     uuid +
@@ -179,7 +236,7 @@ export default {
       var title = "";
       if (location.data != undefined)
         title = this.$moment(location.data.time).fromNow();
-
+      console.log("color: " + location.color);
       var marker = new google.maps.Marker({
         position: {
           lat: location.data.lat,
@@ -187,7 +244,7 @@ export default {
         },
         map: map,
         draggable: true,
-        color: "#ff0000",
+        color: "#" + location.color,
         title: title,
         label: location.user.name.substring(0, 1) || "",
         animation: google.maps.Animation.DROP
