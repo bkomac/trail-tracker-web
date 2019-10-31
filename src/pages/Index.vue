@@ -22,7 +22,9 @@ export default {
       accurracyMarkers: {},
       timers: {},
       polys: {},
-      utils: this.$utils
+      utils: this.$utils,
+      gpx: {},
+      gpxPoly: null
     };
   },
   watch: {
@@ -39,12 +41,14 @@ export default {
     const element = document.getElementById(this.mapName);
     const options = {
       zoom: 16,
-      center: new google.maps.LatLng(46.0676, 14.4116)
+      center: new google.maps.LatLng(46.0676, 14.4116),
+      mapTypeId: "terrain"
     };
     this.map = new google.maps.Map(element, options);
     this.socket.on("location", this.onLocation);
 
     this.socket.on("action", this.onAction);
+    this.socket.on("gpx", this.onGpx);
 
     if (this.channel != undefined || this.channel != "") {
       var channel = channel + "/";
@@ -52,16 +56,6 @@ export default {
     } else {
       this.socket.on("location", this.onLocation);
     }
-
-    // var marker = new google.maps.Marker({
-    //     position: {
-    //         lat: 46.0676,
-    //         lng: 14.4116
-    //     },
-    //     map: this.map,
-    //     draggable: true,
-    //     animation: google.maps.Animation.DROP
-    // });
   },
   created() {},
   methods: {
@@ -166,13 +160,23 @@ export default {
         this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat ==
           loc.data.lat
       ) {
-        console.log("Same point..."+this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat+ " = "+ loc.data.lat);
+        console.log(
+          "Same point..." +
+            this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat +
+            " = " +
+            loc.data.lat
+        );
       } else {
         this.store.users[loc.user.uuid].polyPoints.push({
           lat: loc.data.lat,
           lng: loc.data.lon
         });
-        console.log("add point..."+this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat+ " = "+ loc.data.lat);
+        console.log(
+          "add point..." +
+            this.store.users[loc.user.uuid].polyPoints.slice(-1)[0].lat +
+            " = " +
+            loc.data.lat
+        );
       }
 
       this.store.users[loc.user.uuid].polyPoints = this.store.users[
@@ -210,6 +214,61 @@ export default {
       this.timers[loc.user.uuid] = this.setMomentTimer(this, loc.user.uuid);
     },
 
+    onGpx(track) {
+      console.log(new Date() + " onGpx...");
+      this.gpx = track;
+
+      var path = track.map(obj => ({
+        lat: parseFloat(obj.latitude),
+        lng: parseFloat(obj.longitude)
+      }));
+      //console.log(path);
+      var lineSymbol = {
+        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW
+      };
+      var circleSymbol = {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 5
+      };
+
+      if (this.gpxPoly == null) {
+        this.gpxPoly = new google.maps.Polyline({
+          path: path,
+          geodesic: true,
+          strokeColor: "#f00",
+          strokeOpacity: 0.3,
+          strokeWeight: 3,
+          icons: [
+            {
+              icon: lineSymbol,
+              offset: "30px",
+              repeat: "250px"
+            }
+          ],
+          map: this.map
+        });
+
+        var marker = new google.maps.Marker({
+          position: {
+            lat: path[0].lat,
+            lng: path[0].lng
+          },
+          map: this.map,
+          draggable: false,
+          color: "#0f0",
+          title: "Start",
+          label: "1",
+
+          animation: google.maps.Animation.DROP
+        });
+
+        this.map.panTo({
+          lat: path[0].lat,
+          lng: path[0].lng
+        });
+      }
+    },
+
     setMomentTimer(self, uuid) {
       return setInterval(function() {
         self.store.users[uuid].moment = self
@@ -245,11 +304,17 @@ export default {
         map: map,
         draggable: true,
         color: "#" + location.color,
-        title: title,
-        label: location.user.name.substring(0, 1) || "",
-        animation: google.maps.Animation.DROP
+        title: location.user.name + " " + title,
+        animation: google.maps.Animation.DROP,
+        icon: new google.maps.MarkerImage(
+          "http://www.googlemapsmarkers.com/v1/" +
+            location.user.name.substring(0, 1) +
+            "/" +
+            location.color +
+            "/ffffff/000000"
+        )
       });
-
+      
       var infowindow = new google.maps.InfoWindow({
         content:
           '<div id="content">' +
