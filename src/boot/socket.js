@@ -4,7 +4,8 @@ import io from 'socket.io-client';
 
 // "async" is optional
 export default async ({ Vue }) => {
-  Vue.prototype.$socket = await io('http://node.komac.si:30000');
+  console.log("*** connecting to socket: " + process.env.SOCKET_URL);
+  Vue.prototype.$socket = await io(process.env.SOCKET_URL);
 
   Vue.prototype.$utils = {};
   Vue.prototype.$utils.userColor = function (str) {
@@ -19,5 +20,5 @@ export default async ({ Vue }) => {
     }
     return colour;
   };
-  
+
 }
